@@ -204,7 +204,7 @@ def main(args=None):
             args.port,
             use_virtual=True,
             api=BACKEND_MAP.get(args.backend, rtmidi.API_UNSPECIFIED),
-            client_name='midi2command',
+            client_name='MIDI-PiPy',
             port_name='MIDI input')
     except (IOError, ValueError) as exc:
         return "Could not open MIDI input: %s" % exc
