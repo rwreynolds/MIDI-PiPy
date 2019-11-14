@@ -20,9 +20,9 @@ while True:
     with midiout:
         midiout.open_port(mioport)
         midiout.send_message(note_on)
-        time.sleep(0.01)
+        time.sleep(0.1)
         midiout.send_message(note_off)
-        time.sleep(0.01)
+        time.sleep(0.1)
         midiout.close_port()
 
     if dirct == 1:
