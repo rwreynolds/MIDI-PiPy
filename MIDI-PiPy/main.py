@@ -112,6 +112,10 @@ class MidiInputHandler(object):
         log.debug("[%s] @%i CH:%2s %02X %s %s", self.port, self._wallclock,
                   channel or '-', status, data1, data2 or '')
 
+        log.info(
+            "Raw MIDI data: channel - %s, status - %s, data1 - %s, data2 - %s", 
+            channel, status, data1, data2)
+
         # Look for matching command definitions
         cmd = self.lookup_command(status, channel, data1, data2)
 
