@@ -15,17 +15,24 @@ note = 36
 dirct = 1
 
 #while True:
-mercy = [0xF0, 0x42, 0x30, 0x00, 0x01, 0x15, 0x4E, 0x00, 0xF7, 0xB0, 0x00, 0x00, 0xB0, 0x20, 0x03, 0xC0, 0x00]
+mercyMode = [0xF0, 0x42, 0x30, 0x00, 0x01, 0x15, 0x4E, 0x00, 0xF7]
+mercyBank1 = [0xB0, 0x00, 0x00]
+mercyBank2 = [0xB0, 0x20, 0x03]
+mercyProg = [0xC0, 0x00]
+
 note_on = [0x90, note, 112]  # channel 1, middle C, velocity 112
 note_off = [0x80, note, 0]
 with midiout:
     midiout.open_port(mioport)
-    midiout.send_message(mercy)
+    midiout.send_message(mercyMode)
+    midiout.send_message(mercyBank1)
+    midiout.send_message(mercyBank2)
+    midiout.send_message(mercyProg)
     """ midiout.send_message(note_on)
-        time.sleep(0.0001)
-        midiout.send_message(note_off)
-        time.sleep(0.0001) """
-    midiout.close_port()
+    time.sleep(0.0001)
+    midiout.send_message(note_off)
+    time.sleep(0.0001)
+    midiout.close_port() """
 
     """ if dirct == 1:
         note += 1
