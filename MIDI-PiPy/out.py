@@ -7,7 +7,7 @@ available_ports = midiout.get_ports()
 
 if available_ports:
     mioport = 1
-    # midiout.open_port(mioport)
+    midiout.open_port(mioport)
 else:
     midiout.open_virtual_port("My virtual output")
 
