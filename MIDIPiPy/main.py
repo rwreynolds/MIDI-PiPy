@@ -112,20 +112,29 @@ class MidiInputHandler(object):
         log.debug("[%s] @%i CH:%2s %02X %s %s", self.port, self._wallclock,
                   channel or '-', status, data1, data2 or '')
 
-        log.info(
-            "Raw MIDI data: channel - %s, status - %s, data1 - %s, data2 - %s", 
+        # Look for matching mapped data 
+        if channel < 16:
+            log.info(
+            "Raw MIDI data for mapping: channel - %s, status - %s, data1 - %s, data2 - %s",
             channel, status, data1, data2)
 
-        # Look for matching command definitions
-        cmd = self.lookup_command(status, channel, data1, data2)
+            midiout = rtmidi.O
 
-        if cmd:
-            cmdline = cmd.command % dict(
-                channel=channel,
-                data1=data1,
-                data2=data2,
-                status=status)
-            self.do_command(cmdline)
+        # Look for matching command definitions
+        if channel == 16:         
+            cmd = self.lookup_command(status, channel, data1, data2)
+
+            log.info(
+            "Raw MIDI data for command: channel - %s, status - %s, data1 - %s, data2 - %s",
+            channel, status, data1, data2)
+
+            if cmd:
+                cmdline = cmd.command % dict(
+                    channel=channel,
+                    data1=data1,
+                    data2=data2,
+                    status=status)
+                self.do_command(cmdline)
 
     @lru_cache()
     def lookup_command(self, status, channel, data1, data2):
