@@ -145,34 +145,41 @@ class MidiInputHandler(object):
 
             trans = self.lookup_translation(status, channel, data1, data2)
 
-            midiout = rtmidi.MidiOut()
-
-            available_ports = midiout.get_ports()
-
-            if available_ports:
-                mioport = 1
-                midiout.open_port(mioport)
-
-                note_on = [0x90, 96, 112]  # channel 1, middle C, velocity 112
-                note_off = [0x80, 96, 0]
-                mode = [0xF0, 0x42, 0x30, 0x00, 0x01, 0x15, 0x4E, 0x00, 0xF7]
-                bank1 = [0xB0, 0x00, 0x00]
-                bank2 = [0xB0, 0x20, 0x03]
-                prog = [0xC0, 0x00]
-
-                midiout.send_message(mode)
-                time.sleep(.001)
-                midiout.send_message(bank1)
-                time.sleep(.001)
-                midiout.send_message(bank2)
-                time.sleep(.001)
-                midiout.send_message(prog)
-                time.sleep(.001)
-                midiout.close_port()
+            if trans is None:
+                log.info("No MIDI translation found for input: Status - %s, \
+                    Channel - %s,  Data1 - %s, Data2 - %s",
+                    status, channel, data1, data2)
             else:
-                midiout.open_virtual_port("My virtual output")
+                log.info("Sending MIDI translation.")
 
-            del midiout
+                midiout = rtmidi.MidiOut()
+
+                available_ports = midiout.get_ports()
+
+                if available_ports:
+                    mioport = 1
+                    midiout.open_port(mioport)
+
+                    note_on = [0x90, 96, 112]  # channel 1, middle C, velocity 112
+                    note_off = [0x80, 96, 0]
+                    mode = trans.translation['Mode']     # [0xF0, 0x42, 0x30, 0x00, 0x01, 0x15, 0x4E, 0x00, 0xF7]
+                    bank1 = trans.translation['Bank1']   # [0xB0, 0x00, 0x00]
+                    bank2 = trans.translation['Bank2']   # [0xB0, 0x20, 0x03]
+                    prog = trans.translation['Program']  # [0xC0, 0x00]
+
+                    midiout.send_message(mode)
+                    time.sleep(.001)
+                    midiout.send_message(bank1)
+                    time.sleep(.001)
+                    midiout.send_message(bank2)
+                    time.sleep(.001)
+                    midiout.send_message(prog)
+                    time.sleep(.001)
+                    midiout.close_port()
+                else:
+                    midiout.open_virtual_port("My virtual output")
+
+                del midiout
 
         # Look for matching command definitions
         if channel == 16:         
