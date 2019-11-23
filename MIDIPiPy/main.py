@@ -143,7 +143,7 @@ class MidiInputHandler(object):
                 channel, status, data1, data2
             )
 
-            trans = self.lookup_command(status, channel, data1, data2)
+            trans = self.lookup_translation(status, channel, data1, data2)
 
             midiout = rtmidi.MidiOut()
 
@@ -173,7 +173,7 @@ class MidiInputHandler(object):
                 midiout.open_virtual_port("My virtual output")
 
             del midiout
-         
+
         # Look for matching command definitions
         if channel == 16:         
             cmd = self.lookup_command(status, channel, data1, data2)
@@ -284,8 +284,6 @@ class MidiInputHandler(object):
 
                 log.debug("Config: %s\n%s\n", trans.name, trans.description)
                 self.translations.setdefault(status, []).append(trans)
-
-                
 
 
 def main(args=None):
