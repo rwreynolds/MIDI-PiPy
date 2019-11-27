@@ -142,17 +142,25 @@ class MidiInputHandler(object):
             log.info(
                 "Raw MIDI data for mapping: channel - %s, status - %s, \
                 data1 - %s, data2 - %s",
-                channel, status, data1, data2
-            )
+                channel, status, data1, data2)
 
             if trans:
+                # log.info(len(trans))
                 translation = trans.translation
                 self.send_translation(translation)
             else:
-                self.send_translation(event)
-                log.info("No MIDI translation found for input: Status - %s, \
-                    Channel - %s,  Data1 - %s, Data2 - %s",
-                    status, channel, data1, data2)
+                # log.info("Translation not found.")
+                if (status >= 128 and status <= 191) \
+                        or (status >= 224 and status <= 239):  # channel messages
+                    translation = {'channel:': [status, data1, data2]}
+
+                if status >= 192 and status <= 223:  # system message
+                    translation = {'evesystemnt:': [status, data1]}
+
+                if status >= 240 and status <= 255:
+                    translation = {'sysex:': [status]}
+
+                self.send_translation(translation)
 
         # Look for matching command definitions
         if channel == 16:         
@@ -188,6 +196,10 @@ class MidiInputHandler(object):
 
     def lookup_translation(self, status, channel, data1, data2):
         for trans in self.translations.get(status, []):
+            log.info("Lookup: %s", trans)
+            if trans.name == "end":
+                return None
+
             if channel is not None and trans.channel != channel:
                 continue
 
@@ -214,28 +226,14 @@ class MidiInputHandler(object):
         if available_ports:
             mioport = 1
             midiout.open_port(mioport)
-
-            for msg in trans.translation:
-                midiout.send_message(trans.translation[msg])
+   
+            for msg in translation:
+                log.info("Message: %s", msg)
+                log.info(translation[msg])
+                midiout.send_message(translation[msg])
                 time.sleep(.001)
 
             midiout.close_port()
-            
-            # note_on = [0x90, 96, 112]  # channel 1, middle C, velocity 112
-            # note_off = [0x80, 96, 0]
-            """ mode = trans.translation['Mode']     # [0xF0, 0x42, 0x30, 0x00, 0x01, 0x15, 0x4E, 0x00, 0xF7]
-            bank1 = trans.translation['Bank1']   # [0xB0, 0x00, 0x00]
-            bank2 = trans.translation['Bank2']   # [0xB0, 0x20, 0x03]
-            prog = trans.translation['Program']  # [0xC0, 0x00]
-
-            midiout.send_message(mode)
-            time.sleep(.001)
-            midiout.send_message(bank1)
-            time.sleep(.001)
-            midiout.send_message(bank2)
-            time.sleep(.001)
-            midiout.send_message(prog)
-            time.sleep(.001) """
             
         else:
             midiout.open_virtual_port("My virtual output")
