@@ -28,6 +28,7 @@ import shlex
 import subprocess
 import sys
 import time
+import gc
 
 from os.path import exists
 
@@ -113,6 +114,7 @@ class MidiInputHandler(object):
         self.translations = dict()
         self.load_cmdconfig(cmdconfig)
         self.load_miditrans(miditrans)
+        self.cccounter = 0
 
     def __call__(self, event, data=None):
         event, deltatime = event
@@ -163,15 +165,20 @@ class MidiInputHandler(object):
 
                 self.send_translation(translation)
 
+                if status == CONTROLLER_CHANGE:
+                    if self.cccounter >= 127:
+                        gc.collec()
+                        self.cccounter = 0
+
         # Look for matching command definitions
-        if channel == 16:         
+        if channel == 16:
             cmd = self.lookup_command(status, channel, data1, data2)
 
-            log.info(
+            """ log.info(
                 "Raw MIDI data for command: channel - %s, status - %s, \
                 data1 - %s, data2 - %s",
                 channel, status, data1, data2
-            )
+            ) """
 
             if cmd:
                 cmdline = cmd.command % dict(
@@ -229,8 +236,8 @@ class MidiInputHandler(object):
             midiout.open_port(mioport)
    
             for msg in translation:
-                #  log.info("Message: %s", msg)
-                #  log.info(translation[msg])
+                """ log.info("Message: %s", msg)
+                log.info(translation[msg]) """
                 midiout.send_message(translation[msg])
                 time.sleep(.001)
 
@@ -240,6 +247,7 @@ class MidiInputHandler(object):
             midiout.open_virtual_port("My virtual output")
 
         del midiout
+        gc.collect()
 
     def load_cmdconfig(self, filename):
         if not exists(filename):
@@ -338,7 +346,8 @@ def main(args=None):
     except (EOFError, KeyboardInterrupt):
         return
 
-    # MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
+    #  MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
+
 
     log.debug("Attaching MIDI input callback handler.")
     midiin.set_callback(
