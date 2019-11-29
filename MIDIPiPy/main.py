@@ -41,6 +41,7 @@ except ImportError:
         lru_cache = lambda: lambda func: func
 
 import yaml
+yaml.warnings({'YAMLLoadWarning': False})
 
 import rtmidi
 from rtmidi.midiutil import open_midiinput
@@ -145,17 +146,17 @@ class MidiInputHandler(object):
                 channel, status, data1, data2)
 
             if trans:
-                # log.info(len(trans))
+                #  log.info(len(trans))
                 translation = trans.translation
                 self.send_translation(translation)
             else:
-                # log.info("Translation not found.")
+                #  log.info("Translation not found.")
                 if (status >= 128 and status <= 191) \
                         or (status >= 224 and status <= 239):  # channel messages
                     translation = {'channel:': [status, data1, data2]}
 
                 if status >= 192 and status <= 223:  # system message
-                    translation = {'evesystemnt:': [status, data1]}
+                    translation = {'system:': [status, data1]}
 
                 if status >= 240 and status <= 255:
                     translation = {'sysex:': [status]}
@@ -196,7 +197,7 @@ class MidiInputHandler(object):
 
     def lookup_translation(self, status, channel, data1, data2):
         for trans in self.translations.get(status, []):
-            log.info("Lookup: %s", trans)
+            # log.info("Lookup: %s", trans)
             if trans.name == "end":
                 return None
 
@@ -228,13 +229,13 @@ class MidiInputHandler(object):
             midiout.open_port(mioport)
    
             for msg in translation:
-                log.info("Message: %s", msg)
-                log.info(translation[msg])
+                #  log.info("Message: %s", msg)
+                #  log.info(translation[msg])
                 midiout.send_message(translation[msg])
                 time.sleep(.001)
 
             midiout.close_port()
-            
+    
         else:
             midiout.open_virtual_port("My virtual output")
 
@@ -245,7 +246,7 @@ class MidiInputHandler(object):
             raise IOError("Config file not found: %s" % filename)
 
         with open(filename) as patch:
-            data = yaml.load(patch)
+            data = yaml.full_load(patch)
 
         for cmdspec in data:
             try:
