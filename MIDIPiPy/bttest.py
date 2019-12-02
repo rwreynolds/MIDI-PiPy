@@ -30,6 +30,7 @@ print("Accepted connection from", client_info)
 try:
     while True:
         data = client_sock.recv(1024)
+        client_sock.send(data)
         if not data:
             break
         print("Received", data)
