@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 #
-# midi2command.py
+# main.py
 #
-"""Execute external commands when specific MIDI messages are received.
+"""Execute external commands when specific MIDI messages are received or
+   translate the message to any number or types of midi messages and
+   retransmitt. NOTE: configuration files should end with a block named "end"
 
-Example configuration (in YAML syntax)::
+Example commands configuration, file should be named commands.cfg (in YAML syntax):
 
     - name: My Backingtracks
       description: Play audio file with filename matching <data1>-playback.mp3
@@ -19,7 +21,38 @@ Example configuration (in YAML syntax)::
       channel: 16
       data: 14
       command: evince %(data2)03i-sheet.pdf
+    - name: end
 
+Example miditranslations configuration, file should be named translations.cfg (in YAML syntax):
+
+    - name: Korg Piano
+    description: Standard Korg Krome Grand Piano
+    status: programchange
+    channel: 1
+    data: 1
+    translation:
+        Mode: # Prog
+        - 0xF0
+        - 0x42
+        - 0x30
+        - 0x00
+        - 0x01
+        - 0x15
+        - 0x4E
+        - 0x02
+        - 0xF7
+        Bank1:  # A
+        - 0xB0
+        - 0x00
+        - 0x00
+        Bank2:
+        - 0xB0
+        - 0x20
+        - 0x00
+        Program: # 000
+        - 0xC0
+        - 0x00
+    - name: end
 """
 
 import argparse
@@ -29,8 +62,6 @@ import subprocess
 import sys
 import time
 import gc
-
-import bluetooth
 
 from os.path import exists
 
@@ -236,7 +267,7 @@ class MidiInputHandler(object):
         if available_ports:
             mioport = 1
             midiout.open_port(mioport)
-   
+
             for msg in translation:
                 """ log.info("Message: %s", msg)
                 log.info(translation[msg]) """
@@ -244,7 +275,7 @@ class MidiInputHandler(object):
                 time.sleep(.001)
 
             midiout.close_port()
-    
+
         else:
             midiout.open_virtual_port("My virtual output")
 
@@ -354,26 +385,6 @@ def main(args=None):
     midiin.set_callback(
         MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
     )
-
-    #  BT logic
-    """ server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-    server_sock.bind(("", bluetooth.PORT_ANY))
-    server_sock.listen(1)
-
-    port = server_sock.getsockname()[1]
-
-    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-
-    bluetooth.advertise_service(server_sock, "SampleServer", service_id=uuid,
-                                service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
-                                profiles=[bluetooth.SERIAL_PORT_PROFILE],
-                                # protocols=[bluetooth.OBEX_UUID]
-                                )
-
-    print("Waiting for connection on RFCOMM channel", port)
-
-    client_sock, client_info = server_sock.accept()
-    print("Accepted connection from", client_info) """
 
     log.info("Entering main loop. Press Control-C to exit.")
     try:
