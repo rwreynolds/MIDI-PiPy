@@ -63,7 +63,12 @@ import sys
 import time
 import gc
 
+from consolemenu import *
+from consolemenu.items import *
+
 from os.path import exists
+from os import system
+from os import environ
 
 try:
     from functools import lru_cache
@@ -80,10 +85,12 @@ yaml.warnings({'YAMLLoadWarning': False})
 import rtmidi
 from rtmidi.midiutil import open_midiinput
 from rtmidi.midiconstants import (CHANNEL_PRESSURE, CONTROLLER_CHANGE, NOTE_ON, NOTE_OFF,
+       
                                   PITCH_BEND, POLY_PRESSURE, PROGRAM_CHANGE)
 
 
 log = logging.getLogger('midipipy')
+
 BACKEND_MAP = {
     'alsa': rtmidi.API_LINUX_ALSA,
     'jack': rtmidi.API_UNIX_JACK,
@@ -140,7 +147,7 @@ class MidiTrans(object):
 
 
 class MidiInputHandler(object):
-    def __init__(self, port, cmdconfig, miditrans):
+    def __init__(self, port, cmdconfig, miditrans, menu):
         self.port = port
         self._wallclock = time.time()
         self.commands = dict()
@@ -148,6 +155,7 @@ class MidiInputHandler(object):
         self.load_cmdconfig(cmdconfig)
         self.load_miditrans(miditrans)
         self.cccounter = 0
+        self.menu = menu
 
     def __call__(self, event, data=None):
         event, deltatime = event
@@ -175,10 +183,15 @@ class MidiInputHandler(object):
         if channel < 16:
             trans = self.lookup_translation(status, channel, data1, data2)
 
-            log.info(
-                "Raw MIDI data for mapping: channel - %s, status - %s, \
-                data1 - %s, data2 - %s",
-                channel, status, data1, data2)
+            """  log.info(
+                    "Raw MIDI data for mapping: channel - %s, status - %s, \
+                    data1 - %s, data2 - %s",
+                    channel, status, data1, data2) """
+
+            # menu_item = MenuItem(status)
+            self.menu.epilogue_text = "Last Status: " + str(status) + ", Data1: " + str(data1) + ", Data2: " + str(data2)
+            system('clear')
+            self.menu.draw()
 
             if trans:
                 #  log.info(len(trans))
@@ -235,6 +248,7 @@ class MidiInputHandler(object):
                     cmd.data[0] == data1 and cmd.data[1] == data2):
                 return cmd
 
+    @lru_cache()
     def lookup_translation(self, status, channel, data1, data2):
         for trans in self.translations.get(status, []):
             # log.info("Lookup: %s", trans)
@@ -253,7 +267,7 @@ class MidiInputHandler(object):
                 return trans
 
     def do_command(self, cmdline):
-        log.info("Calling external command: %s", cmdline)
+        log.debug("Calling external command: %s", cmdline)
         try:
             args = shlex.split(cmdline)
             subprocess.Popen(args)
@@ -342,6 +356,7 @@ class MidiInputHandler(object):
 
 
 def main(args=None):
+
     """Main program function.
 
     Parses command line (parsed via ``args`` or from ``sys.argv``), detects
@@ -364,8 +379,12 @@ def main(args=None):
 
     args = parser.parse_args(args)
 
-    logging.basicConfig(format="%(name)s: %(levelname)s - %(message)s",
+    logging.basicConfig(filename="midipipy.log", format="%(name)s: %(levelname)s - %(message)s",
                         level=logging.DEBUG if args.verbose else logging.INFO)
+
+    environ['TZ'] = 'CST+06cDT,M4.1.0,M10.5.0'
+    time.tzset()
+    log.debug("Application started: %s", time.strftime('%X %x %Z'))
 
     try:
         midiin, port_name = open_midiinput(
@@ -379,22 +398,50 @@ def main(args=None):
     except (EOFError, KeyboardInterrupt):
         return
 
-    #  MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
+    # Create the menu
+    menu = ConsoleMenu("MIDI-PiPy", "Main Menu")
 
+    #  MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
     log.debug("Attaching MIDI input callback handler.")
     midiin.set_callback(
-        MidiInputHandler(port_name, args.cmdconfig, args.miditrans)
+        MidiInputHandler(port_name, args.cmdconfig, args.miditrans, menu)
     )
 
+    # Create some items
+
+    # MenuItem is the base class for all items, it doesn't do anything when selected
+    # menu_item = MenuItem("Menu Item")
+
+    # A FunctionItem runs a Python function when selected
+    # function_item = FunctionItem("Call a Python function", dir)
+
+    # A CommandItem runs a console command
+    viewlog_item = CommandItem("View log file",  "less ./midipipy.log")
+    # A CommandItem runs a console command
+    deletelog_item = CommandItem("Delete log file",  "rm ./midipipy.log")
+
+    # A SelectionMenu constructs a menu from a list of strings
+    # selection_menu = SelectionMenu(["item1", "item2", "item3"])
+
+    # A SubmenuItem lets you add a menu (the selection_menu above, for example)
+    # as a submenu of another menu
+    # submenu_item = SubmenuItem("Submenu item", selection_menu, menu)
+
+    # Once we're done creating them, we just add the items to the menu
+    # menu.append_item(menu_item)
+    # menu.append_item(function_item)
+    menu.append_item(viewlog_item)
+    menu.append_item(deletelog_item)
+    # menu.append_item(submenu_item)
+
+    # Finally, we call show to show the menu and allow the user to interact
+    # menu.show()
     log.info("Entering main loop. Press Control-C to exit.")
     try:
-        # just wait for keyboard interrupt in main thread
+        menu.show()
+        """ # just wait for keyboard interrupt in main thread
         while True:
-            time.sleep(1)
-            """ data = client_sock.recv(1024)
-            if not data:
-                break
-            print("Received", data) """
+            # time.sleep(1) """
     except KeyboardInterrupt:
         print('')
     finally:

@@ -14,7 +14,8 @@
             "args": [ 
                 "commands.cfg",
                 "translations.cfg",
-                "-p1"
+                "-p1",
+                "-v"
             ]
         },
         {
